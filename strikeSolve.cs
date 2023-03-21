@@ -12,6 +12,7 @@ public class strikeSolve : MonoBehaviour {
    public KMBombInfo Bomb;
    public KMAudio Audio;
    public KMBombModule Module;
+   public KMBombInfo Info;
 
    static int ModuleIdCounter = 1;
    int ModuleId;
@@ -121,7 +122,6 @@ public class strikeSolve : MonoBehaviour {
          if (submitStep == 4)
          {
             Log("SolveStrike Solved");
-            
             Module.HandlePass();
          }
       }
@@ -138,9 +138,11 @@ public class strikeSolve : MonoBehaviour {
    void Start () {
       ModuleId = ModuleIdCounter++;
       
+      
+      
       topBtn.OnInteract += delegate () { TopPress(); return false; };
       bottomBtn.OnInteract += delegate () { BottomPress(); return false; };
-      
+
       Log("SolveStrike Generating");
       Color TopBtnColor = getRandomColor();
       Color BottomBtnColor = getRandomColor();
@@ -256,11 +258,35 @@ public class strikeSolve : MonoBehaviour {
    }
 
 #pragma warning disable 414
-   private readonly string TwitchHelpMessage = @"Use !{0} to do something.";
+   private readonly string TwitchHelpMessage = @"Use !{0} T or B or a sequence such as TTBB to press the top or bottom button.";
 #pragma warning restore 414
 
    IEnumerator ProcessTwitchCommand (string Command) {
-      yield return null;
+      Log("Processing Twitch Command - {0}", Command);
+      Command = Command.Trim().ToUpper();
+      if (submitAnswer == "")
+      {
+         yield return "sendtochaterror The module has not generated yet, this may be a bug.";
+      }
+      foreach (char c in Command)
+      {
+         if (c == 'T')
+         {
+            yield return null;
+            TopPress();
+         }
+         else if (c == 'B')
+         {
+            yield return null;
+            BottomPress();
+         }
+         else
+         {
+            yield return "sendtochaterror Invalid command.";
+            yield break;
+         }
+         
+      }
    }
 
    IEnumerator TwitchHandleForcedSolve () {
