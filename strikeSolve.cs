@@ -81,6 +81,12 @@ public class strikeSolve : MonoBehaviour {
       if ("ADEGHLMPQRTVWY".Contains(input)) return 'T';
       return 'B';
    }
+
+   int Mod(int x, int m)
+   {
+      int r = x % m;
+      return r < 0 ? r + m : r;
+   }
    
    void Awake () {
       
@@ -161,9 +167,21 @@ public class strikeSolve : MonoBehaviour {
       Log("Bottom Button {0} ({1})", strike, ColorToWord(BottomBtnColor));
 
       int alpha_offset = 0;
-      if (Bomb.GetBatteryCount() >= 3) alpha_offset += 2;
-      if (Bomb.GetPorts().Contains("Parallel")) alpha_offset += 1;
-      if (Bomb.GetSerialNumberNumbers().Last() % 2 == 1) alpha_offset -= 3;
+      if (Bomb.GetBatteryCount() >= 3)
+      {
+         alpha_offset += 2;
+         Log("3 or more batteries detected, adding 2 to offset");
+      }
+      if (Bomb.GetPorts().Contains("Parallel"))
+      {
+         alpha_offset += 1;
+         Log("Parallel port detected, adding 1 to offset");
+      }
+      if (Bomb.GetSerialNumberNumbers().Last() % 2 == 1)
+      {
+         Log("Last digit of serial number is odd, subtracting 3 from offset");
+         alpha_offset -= 3;
+      }
       bool isLetter = false;
       foreach (var c in Bomb.GetSerialNumber())
       {
@@ -172,8 +190,16 @@ public class strikeSolve : MonoBehaviour {
             isLetter = true;
          }
       }
-      if (isLetter) alpha_offset += 3;
-      if (Bomb.GetOnIndicators().Count() <= 2) alpha_offset -= 2;
+      if (isLetter)
+      {
+         alpha_offset += 3;
+         Log("Serial number contains a letter in text, adding 3 to offset");
+      }
+      if (Bomb.GetOnIndicators().Count() <= 2)
+      {
+         Log("2 or less indicators on, subtracting 2 from offset");
+         alpha_offset -= 2;
+      }
 
       if (Bomb.GetModuleIDs().Any(x => x == "MemoryV2" || x == "organizationModule" || x == "SouvenirModule"))
       {
@@ -181,10 +207,26 @@ public class strikeSolve : MonoBehaviour {
          alpha_offset = 0;
       }
       //top color is green blue or yellow
-      if (TopBtnColor == Color.green || TopBtnColor == Color.blue || TopBtnColor == Color.yellow) alpha_offset += 2;
-      if (TopBtnColor == Color.red || TopBtnColor == Color.magenta || TopBtnColor == Color.white) alpha_offset -= 1;
-      if (Bomb.GetOnIndicators().Count() > Bomb.GetOffIndicators().Count()) alpha_offset += 1;
-      if (Bomb.GetModuleIDs().Contains("strikeSolve")) alpha_offset = 7;
+      if (TopBtnColor == Color.green || TopBtnColor == Color.blue || TopBtnColor == Color.yellow)
+      {
+         Log("Top button is green, blue, or yellow, adding 2 to offset");
+         alpha_offset += 2;
+      }
+      if (TopBtnColor == Color.red || TopBtnColor == Color.magenta || TopBtnColor == Color.white)
+      {
+         Log("Bottom button is red, magenta, or white, subtracting 1 from offset");
+         alpha_offset -= 1;
+      }
+      if (Bomb.GetOnIndicators().Count() > Bomb.GetOffIndicators().Count())
+      {
+         Log("More on indicators than off indicators, adding 1 to offset");
+         alpha_offset += 1;
+      }
+      if (Bomb.GetModuleIDs().Contains("strikeSolve"))
+      {
+         Log("Strike Solve detected, setting offset to 7");
+         alpha_offset = 7;
+      }
 
       int betaOffset = BetaGammaOffset(TopBtnColor);
       int gammaOffset = BetaGammaOffset(BottomBtnColor);
@@ -220,7 +262,7 @@ public class strikeSolve : MonoBehaviour {
       //remove the last character
       finalKey = finalKey.Substring(0, finalKey.Length - 1);
       Log("Key: {0}", finalKey);
-      int deltaOffset = (((alpha_offset + betaOffset + gammaOffset + 1) * (Bomb.GetBatteryHolderCount() + 1)) % 24) + 1;
+      int deltaOffset = Mod((alpha_offset + betaOffset + gammaOffset + 1) * (Bomb.GetBatteryHolderCount() + 1), 24) + 1;
       Log("Delta Offset: {0}", deltaOffset);
       int EpsilonOffset = deltaOffset + Math.Abs(betaOffset);
       Log("Epsilon Offset: {0}", EpsilonOffset);
@@ -273,12 +315,12 @@ public class strikeSolve : MonoBehaviour {
          if (c == 'T')
          {
             yield return null;
-            TopPress();
+            topBtn.OnInteract();
          }
          else if (c == 'B')
          {
             yield return null;
-            BottomPress();
+            bottomBtn.OnInteract();
          }
          else
          {
@@ -289,7 +331,16 @@ public class strikeSolve : MonoBehaviour {
       }
    }
 
-   IEnumerator TwitchHandleForcedSolve () {
-      yield return null;
+   IEnumerator TwitchHandleForcedSolve ()
+   {
+      Log("Processing Twitch Forced Solve");
+      while (submitStep != 4)
+      {
+         if (submitAnswer[submitStep] == 'T')
+            topBtn.OnInteract();
+         else
+            bottomBtn.OnInteract();
+         yield return new WaitForSeconds(.1f);
+      }
    }
 }
